@@ -1,0 +1,60 @@
+def env_aws_acc_cred = [ ]
+def allowed_branches = [ "PROD" : ["master"], "QA" : ["qa"], "DEV" : [] ]
+
+properties([
+    parameters([
+        choice(name: 'env', choices: ['DEV', 'QA', 'PROD'], description: 'Deployment Envrionment' ),
+        choice(name: 'aws_region', choices: ['eu-west-1'], description: 'AWS REGION', ),
+//         Just an example to have string and boolean params.
+//         string(name: 'job_name', defaultValue: 'utility', description: 'Job Name', trim: true),
+//         booleanParam(name: 'run_test', defaultValue: true, description: 'flag to run test or not', )
+    ])
+])
+
+node {
+    stage('initialize') {
+
+        def gitRepo = checkout scm
+        git_branch = gitRepo.GIT_BRANCH.tokenize('/')[-1]
+
+        String git_short_commit_id = gitRepo.GIT_COMMIT[0..6]
+        println("git_short_commit_id : "+git_short_commit_id)
+
+        String buildTime = sh(returnStdout: true, script: "date +'%Y.%V'").trim()
+        currentBuild.displayName = (buildTime + "." + currentBuild.number + "." + git_branch + "." + git_short_commit_id)
+
+
+        def branch_list = allowed_branches[params.env]
+        if (! branch_list.isEmpty() &&  !(git_branch in branch_list)) {
+            error "Selected '${git_branch}' branch, is not allowed to be deployed on '${params.env}' environment."
+        }
+
+        echo "Deploying '${git_branch}' branch on ${params.env.toLowerCase()} environment."
+        String aws_access_id, aws_secret_key
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: env_aws_acc_cred[params.env],
+                usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+            aws_access_id = USERNAME
+            aws_secret_key = PASSWORD
+        }
+        if (! aws_access_id || ! aws_secret_key ) {
+            error "AWS access/secret key is empty or not defined. aws_access_id : ${aws_access_id}, aws_secret_key : ${aws_secret_key}"
+        }
+
+    }
+
+    stage('Deploy') {
+        wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[password: aws_secret_key, var: 'AWS_SECRET']]]) {
+
+               sh """
+               export AWS_ACCESS_KEY_ID=${aws_access_id}
+               export AWS_SECRET_ACCESS_KEY=${aws_secret_key}
+               sls plugin install -n serverless-python-requirements
+               sls plugin install -n serverless-vpc-discovery
+               sls plugin install -n serverless-pseudo-parameters
+               serverless deploy --env ${params.env.toLowerCase()} --region ${params.aws_region}
+               """
+
+        }
+    }
+
+}

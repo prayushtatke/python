@@ -1,0 +1,20 @@
+variables:
+  LOG_LEVEL: "ERROR"
+  REGION: "<REGION"
+  IN_STREAM: "<IN_STREAM>"
+  REDIS_INFO_PARAM_NAME: "<REDIS_INFO_PARAM_NAME>"
+  
+vpc:
+  vpcName: dev
+  subnetNames:
+    - <subnetNames>
+  securityGroupNames:
+    - <securityGroupNames>
+
+
+tags: # Function specific tags
+  Environment: <env>
+  Product:    <Product>
+  Service:    lambda
+  Serverless: true
+  Contact:    <Contact>

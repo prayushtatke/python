@@ -1,0 +1,48 @@
+
+service: serverless-test-${self:provider.c_name} # NOTE: update this with your service name
+
+provider:
+  name: aws
+  runtime: python3.7
+  stage: default
+  env: ${opt:env, 'dev'}
+  region: ${opt:region, 'eu-west-1'}
+  environment: ${file(./config/common.${self:provider.env}.yaml):variables}
+  iamRoleStatements:
+      - ${file(./iam/cloud_watch_logs.yaml)}
+      - ${file(./iam/ec2_permissions.yaml)}
+      - ${file(./iam/kinesis.yaml)}
+      - ${file(./iam/ssm_parameter.yaml)}
+plugins:
+  - serverless-python-requirements
+  - serverless-pseudo-parameters
+  - serverless-vpc-discovery
+package:
+      include:
+        - ../common_utils/utils/**
+        - src/**
+
+      exclude:
+        - test/**
+
+functions:
+  function:
+    name: ${self:provider.c_name}
+    handler: src.status_handler.handler
+    timeout: 360
+    memorySize: 1024
+    tags: ${file(./config/common.${self:provider.env}.yaml):tags}
+    environment: ${file(./config/${self:provider.oem}/config.${self:provider.env}.yaml):variables}
+    events:
+      - stream:
+          arn: arn:aws:kinesis:${self:provider.region}:#{AWS::AccountId}:stream/${file(./config/common.${self:provider.env}.yaml):variables.IN_STREAM}
+          startingPosition: LATEST
+          batchSize: 20
+          parallelizationFactor: 10
+
+custom:
+  pythonRequirements:
+    dockerizePip: false
+    useDownloadCache: false
+    useStaticCache: false
+  vpc: ${file(./config/common.${self:provider.env}.yaml):vpc}

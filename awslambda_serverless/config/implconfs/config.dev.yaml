@@ -1,0 +1,4 @@
+variables:
+  ENV_VAR_1: "<ENV_VAR_1>"
+  ENV_VAR_2: "<ENV_VAR_2>"
+  
