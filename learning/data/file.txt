@@ -1,0 +1,5 @@
+Once upon a time, deep in an xxCORExx ancient jungle,there lived a ${animal}.
+This ${animal} liked to eat ${food}, but xxMIGxx the jungle had very little ${food}
+to offer. One day, an explorer xxCORExx found the ${animal} and discovered it liked
+${food}. The explorer took the ${animal} back to ${city}, where it could
+eat as much ${food} as xxMIGxx it wanted. However,the ${animal} became homesick.
