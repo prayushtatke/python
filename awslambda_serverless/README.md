@@ -24,12 +24,9 @@ Abstract class for all the implementers.
 - *save_status* to Redis Cache
 
 Following Methods are abstract:
-1. *get_status_code* (maps the signal code to status code)
-2. *calculate_status* (maps the asset info to the status code)
-3. *apply_filter* (checks if the record is to be processed by existing lambda)
+1. *apply_filter* (checks whether payload to be processed.)
+2. *enrich* (enriches the payload)
 
-**src.status.vestas_status.VestasStatusImplementer**
-Implementer Class to process the Vestas Records from Kinesis
 
 
 ## Process:
@@ -39,11 +36,7 @@ Implementer Class to process the Vestas Records from Kinesis
 4. The implementer class will first fetch the asset info from asset-metadata mapping from Redis.
 5. The implementer class will then check if that record needs to be processed by this lambda.
 6. Status code will be deduced as per *get_status_code* method
-7. Deduces code will be stored under the asset_id key.
 
-
-## Code Flow:
-![picture](turbine_status_caching_service.png)
 
 ## Tech Stack:
 - AWS Kinesis
@@ -53,11 +46,10 @@ Implementer Class to process the Vestas Records from Kinesis
 
 ## Requirements:
 ### System Requirements:
-- Python3.5 or above
+- Python3.7 or above
 
 ### Python Library Requirements:
 - boto3
-- redis
 - common_utils
 
 
@@ -65,20 +57,4 @@ Implementer Class to process the Vestas Records from Kinesis
 | ENV_NAME | Value | Default |
 | ------ | ------ | ------- |
 | LOG_LEVEL | **********| INFO |
-| REDIS_HOST | ********* |
-| REDIS_PORT | ********* |
-| REDIS_PASS_SECRET_KEY | ********* |
-| SECRET_NAME | ********* |
-| TURBINE_STATUS_MAPPING_KEY | *********** |
-| ASSET_MAPPING_KEY | *********** |
 
-
-### Environment Variable For Vestas
-|ENV_NAME|Value| Description |
-|------|------|--------|
-|VMP_SIGNAL|*********| signal name for VMP |
-|TAC_SIGNAL|*********| signal name for TAC |
-
-##Roles Needed
-* Roles Needed:
-  - Redis Cache Access
