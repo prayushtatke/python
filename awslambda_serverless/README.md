@@ -1,6 +1,29 @@
+## Important Commands
+**Note:** 'sls' is alias of 'serverless', alias sls='serverless'
+- Template to create aws lambda with Python
+> sls create --template aws-python --name <lambda_name> --path </path/to/create/lambda>
+
+- Invoking the lambda locally, with providing input data.
+> sls invoke local --function <lambda_name> --data '{key1: val1}'
+
+- Invoking the lambda locally, with providing input data as json file.
+> sls invoke local --function <lambda_name> -p ../input.json
+
+- To Package Lambda
+> sls package --stage dev #OR
+> sls package -s dev
+
+- To Deploy Lambda
+> sls deploy --stage dev #OR
+> sls deploy -s dev
+
+- To Deploy Lambda with user defined params.
+Below 'env' is defined as 'opt' variable in serverless.yml.
+> sls deploy --env dev --version 1.1.2
+
+
 ## Overall Goal:
 This is Lambda Function which will ingest data from raw input kinesis streams and will enrich the input.
-
 
 ## How:
 **src.status_handler.handler**
@@ -10,7 +33,7 @@ Receives main event and initialises the implementer
 Provides implementer class as per env
 
 **src.status_handler.KinesisLambdaHandler**
-Provides a wraping class which 
+Provides a wraping class which
 - accepts the raw event
 - parses the event to get the kinesis records
 - call the implementor class for each record
@@ -42,8 +65,7 @@ Following Methods are abstract:
 - common_utils
 
 
-## Environment Variable Common for all vendors 
+## Environment Variable Common for all vendors
 | ENV_NAME | Value | Default |
 | ------ | ------ | ------- |
 | LOG_LEVEL | **********| INFO |
-
