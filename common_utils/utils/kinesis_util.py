@@ -1,11 +1,12 @@
 import common_utils.utils.commons as util
 import common_utils.utils.aws as aws
-import traceback
+from common_utils.utils.decorators import raise_exception
+from common_utils.utils.logger import Logger
+
 
 class Kinesis(aws.Client):
-
     client_type = 'kinesis'
-    logger = util.get_logger('Kinesis')
+    logger = Logger('Kinesis')
 
     def is_stream_exist(self, stream_name):
         """
@@ -27,7 +28,7 @@ class Kinesis(aws.Client):
         return exist
 
 
-    @util.raise_exception(logger=logger, err_msg='write_batch(): Failed')
+    @raise_exception(logger=logger, err_msg='write_batch(): Failed')
     def write_batch(self, stream_name=None, batch=None):
         """
         :param batch: list of kinesis Records, batch to be published to kinesis
@@ -48,13 +49,12 @@ class Kinesis(aws.Client):
             return put_records(stream_name, batch)
         except Exception as e:
 
-            traceback.print_exc()
             self.logger.warning(str(e))
             self.client = None
             return put_records(stream_name, batch)
 
 
-    @util.raise_exception(logger=logger, err_msg='write_record(): Failed.')
+    @raise_exception(logger=logger, err_msg='write_record(): Failed.')
     def write_record(self, stream_name=None, partition_key=None, record=None):
         """
         :param record: list of kinesis Records, batch to be published to kinesis
@@ -68,7 +68,7 @@ class Kinesis(aws.Client):
             "Record is empty, No records to persist."
 
         if not partition_key:
-            partition_key=str(hash(record))
+            partition_key = str(hash(record))
 
         def put_record(stream, rec):
             k_client = self.get_or_create_client()
@@ -79,4 +79,3 @@ class Kinesis(aws.Client):
         except Exception:
             self.client = None
             return put_record(stream_name, record)
-

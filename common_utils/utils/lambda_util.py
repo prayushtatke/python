@@ -1,10 +1,11 @@
 import common_utils.utils.commons as util
 from ast import literal_eval
-import utils.aws as aws
+import common_utils.utils.aws as aws
+from common_utils.utils.logger import Logger
 
 class Lambda(aws.Client):
     client_type = 'lambda'
-    logger = util.get_logger('Lambda')
+    logger = Logger('Lambda')
 
 
     def check_lambda_exist(self, lambda_name):

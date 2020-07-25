@@ -1,7 +1,8 @@
 import common_utils.utils.commons as util
+from common_utils.utils.decorators import raise_exception
+from common_utils.utils.logger import Logger
 
-
-@util.raise_exception(err_msg='Method: get_aws_client(): Error initializing AWS Client.')
+@raise_exception(err_msg='Method: get_aws_client(): Error initializing AWS Client.')
 def get_aws_client(service_name,
                    region_name=None,
                    aws_access_key_id=None,
@@ -39,15 +40,18 @@ def get_aws_client(service_name,
 
 
 class Client:
-    logger = util.get_logger('AwsUtil')
+    logger = Logger('AwsUtil')
     client_type = ''
 
     def __init__(self, region=None, assume_role_arn=None,
                  assume_role_session_name=None, assume_role_duration_sec=None,
                  aws_access_key_id=None, aws_secret_access_key=None,
                  aws_session_token=None, endpoint_url=None,
-                 config=None):
-        self.client = None
+                 config=None,test_client=None):
+        if test_client:
+            self.client=test_client
+        else:
+            self.client = None
         self.region = region
         self.assume_role_arn = assume_role_arn
         self.assume_role_session_name = assume_role_session_name
@@ -88,7 +92,7 @@ class Client:
             return self.client
 
         self.__check_access_params()
-        self.logger.info('Creating New AWS Service Client')
+        self.logger.debug('Creating New AWS Service Client')
         self.client = self.get_new_client()
 
         return self.client

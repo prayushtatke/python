@@ -10,7 +10,7 @@ class Logger:
     WARNING = 'WARNING'
     ERROR = 'ERROR'
 
-    def __init__(self, name, log_level='DEBUG'):
+    def __init__(self, name, log_level=None):
         '''
         Constructor
         :param name: Class or Function __name__
@@ -18,19 +18,24 @@ class Logger:
         :param log_level: Log level. One of ('INFO', 'DEBUG', 'WARNING', 'ERROR')
         :type log_level: str
         '''
+
+        # Log Level Set as ENV takes Precedence.
+        from os import getenv
+        loglevel = getenv('LOG_LEVEL', log_level)
         self.name = name
         self.log_format = '%(asctime)s - %(levelname)s - %(name)s: %(message)s'
-        self.log_level = self.__get_log_level(log_level)
+
+        self.log_level = self.__get_log_level(loglevel)
         self.logger = self.__get_logger()
 
     def __get_log_level(self, level):
         switcher = {
-            'DEBUG'  :logging.DEBUG,
-            'INFO'   :logging.INFO,
-            'WARNING':logging.WARNING,
-            'ERROR'  :logging.ERROR
+            'DEBUG': logging.DEBUG,
+            'INFO': logging.INFO,
+            'WARNING': logging.WARNING,
+            'ERROR': logging.ERROR
         }
-        return switcher.get(level, lambda:logging.DEBUG)
+        return switcher.get(level, lambda: logging.DEBUG)
 
     def __get_logger(self):
         logger = logging.getLogger(self.name)
@@ -65,3 +70,6 @@ class Logger:
 
     def warning(self, message):
         self.logger.warning(message)
+
+    def exception(self, message):
+        self.logger.exception(message)

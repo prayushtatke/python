@@ -1,12 +1,14 @@
 import common_utils.utils.aws as aws
 import common_utils.utils.commons as util
+from common_utils.utils.decorators import raise_exception
+from common_utils.utils.logger import Logger
 
 class Firehose(aws.Client):
 
 	client_type = 'firehose'
-	logger = util.get_logger('Firehose')
+	logger = Logger('Firehose')
 
-	@util.raise_exception(logger=logger, err_msg='write_record(): Failed.')
+	@raise_exception(logger=logger, err_msg='write_record(): Failed.')
 	def write_record(self, stream_name=None, record=None):
 		"""
 		:param stream_name: firehose stream name to publish to.
@@ -28,7 +30,7 @@ class Firehose(aws.Client):
 		)
 
 
-	@util.raise_exception(logger=logger, err_msg='write_batch(): Failed.')
+	@raise_exception(logger=logger, err_msg='write_batch(): Failed.')
 	def write_batch(self, stream_name=None, batch=None):
 		"""
 		:param stream_name: firehose stream name to publish to.

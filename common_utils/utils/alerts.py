@@ -1,7 +1,9 @@
 from datetime import datetime
 from os import getenv
-from common_utils.utils.commons import is_not_empty, get_logger
+from common_utils.utils.commons import is_not_empty
 from json import dumps
+
+from common_utils.utils.logger import Logger
 
 ENABLE_ALERTS_HANDLING = getenv('ENABLE_ALERTS_HANDLING', False)
 
@@ -15,7 +17,7 @@ class AlertsHandler:
     ah.handle(err_code=<code>, err_msg=<msg>, exception=<>, kwarg1=val1, kwarg2=val2)
     """
 
-    logger = get_logger('AlertsHandler')
+    logger = Logger('AlertsHandler')
 
     def __init__(self,stream_name=None, stream_client=None):
 

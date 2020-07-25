@@ -61,7 +61,6 @@ class TestRedisUtils(unittest.TestCase):
         value = redis.get_hkey('a_non_existent_key')
         self.assertFalse(value.is_present())
 
-
     # @unittest.skip
     def test_set_get_hkey_coll(self):
         redis = Redis(namespace='test', test_client=self.mockclient)

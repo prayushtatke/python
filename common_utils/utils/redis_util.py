@@ -1,8 +1,11 @@
 import redis
 import ast
-from pyOptional import Optional
 from  common_utils.utils import commons as util
 from common_utils.utils.configstore import ConfigStore
+from common_utils.utils.optional import Optional
+from common_utils.utils.logger import Logger
+from common_utils.utils.decorators import return_opt_empty_when_error
+
 
 class RedisException(Exception):
   pass
@@ -13,7 +16,7 @@ class RedisNoKeyFoundException(Exception):
 class Redis:
 
     client_type = 'Redis'
-    logger = util.get_logger('Redis')
+    logger = Logger('Redis')
 
     @classmethod
     def get_client(cls, host=None, port=None, password=None):
@@ -24,12 +27,12 @@ class Redis:
         :param password:
         :return:
         """
-        return redis.Redis(host=host, port=port, password=password, ssl=True)
+        return redis.Redis(host=host, port=port, password=password, ssl=True, health_check_interval=30)
 
 
     def __init__(self, host=None, port=6379, password=None,
                  namespace=None, aws_secret_name=None, aws_secret_pass_key='redis_pass', aws_param_name=None,
-                 aws_region='eu-west-1',
+                 aws_region='eu-west-1', secured_param=False,
                  key_delim=':',
                  test_client=None):
         """
@@ -46,15 +49,18 @@ class Redis:
         self.namespace = namespace
         self.key_delim = key_delim
 
-        self.logger.info('Connecting to Redis Database')
+        self.logger.debug('Connecting to Redis Database')
         self.host, self.port , self.password =  None, None, None
 
-        if all([host, port, password]):
+        if test_client is not None:
+            self.client = test_client
+
+        elif all([host, port, password]):
             self.host, self.port , self.password =  host, port, password
 
         # get configs from aws parameter store
         elif aws_param_name is not None:
-            params = ConfigStore.get_config(aws_secret_name, store_type='params')
+            params = ConfigStore.get_config(aws_param_name, store_type='params', secured=secured_param)
             self.__validate_params(params, ['redis_host', 'redis_pass'])
             prt = int(params.get('redis_port')) if params.get('redis_port') else port
             self.host, self.port , self.password = params['redis_host'], prt, params['redis_pass']
@@ -66,13 +72,11 @@ class Redis:
             self.host, self.port , self.password = host, port, params[aws_secret_pass_key]
 
         # used for unit testing
-        elif test_client is not None:
-            self.client = test_client
 
         try:
             if not test_client:
                 self.client = Redis.get_client(self.host, self.port , self.password)
-            self.logger.info('Connection to redis database established')
+            self.logger.debug('Connection to redis database established')
         except Exception as e:
             self.logger.error(str(e))
             raise RedisException(str(e))
@@ -92,7 +96,7 @@ class Redis:
         else:
             self.client.hset(ns, key, value)
 
-
+    @return_opt_empty_when_error()
     def get_hkey(self, key, namespace=None, eval=True ) -> Optional:
         """
          To retrieve a specific Key from namespace.
@@ -103,6 +107,7 @@ class Redis:
         :param eval:
         :return:
         """
+
         ns = namespace if namespace else self.namespace
         val = None
         if isinstance(key, list):
@@ -117,6 +122,7 @@ class Redis:
 
         return opt_val
 
+    @return_opt_empty_when_error()
     def get_hkeys(self, keys : list, namespace=None, eval=True ) -> Optional:
         """
          To retrieve values of given keys from namespace.
@@ -130,8 +136,8 @@ class Redis:
         if not isinstance(keys, list):
             raise TypeError(f"'keys' should be 'list' type.")
 
-        keys = list(map(lambda key: self.key_delim.join(key)
-                    if isinstance(key, list) else key, keys))
+        # Join key if key itself a list
+        keys = list(map(lambda key: self.key_delim.join(key) if isinstance(key, list) else key, keys))
 
         ns = namespace if namespace else self.namespace
         opt_val = Optional(self.client.hmget(ns, keys))
@@ -140,28 +146,36 @@ class Redis:
             return Optional.empty()
 
         keyvals = {}
-        for idx, value in enumerate(map(lambda d: d.decode("utf-8"), filter(lambda dd: dd is not None, opt_val.get()))):
-            keyvals[keys[idx]] = self.__do_eval(value) if eval else value
+        for idx, value in enumerate(opt_val.get()):
+            keyvals[keys[idx]] = value
+
+        keyvals = dict([(key, value) for key, value in keyvals.items() if value is not None])
+
+        for key, value in keyvals.items():
+            keyvals[key] = self.__do_eval(value.decode('utf-8')) if eval else value.decode('utf-8')
 
         return Optional(keyvals)
-
+        
     def exist_hkey(self, key, namespace=None) -> bool:
         """Check if key exist in namespace."""
         ns = namespace if namespace else self.namespace
         return self.client.hexists(ns, key)
 
 
-    def set_hkeys(self, hmap, namespace=None):
+    def set_hkeys(self, hmap: dict, namespace=None):
         """
             To persist a hashmap in Redis.
         :param hmap:
         :param namespace:
         :return:
         """
+        if not hmap:
+            raise RedisException(f"Got Empty Map to store in Redis. .")
+
         ns = namespace if namespace else self.namespace
-        self.client.hmset(ns, hmap)
+        self.client.hmset(ns, hmap)  
 
-
+    @return_opt_empty_when_error()
     def getall_hkeys(self, namespace=None, key_prefix=None, key_suffix=None, key_contains=None) -> Optional:
         """
             Returns all keys under hash/ namespace.
@@ -199,8 +213,12 @@ class Redis:
 
     def del_hkey(self, key, namespace=None, eval=True ):
         ns = namespace if namespace else self.namespace
-        self.client.hdel(namespace, key)
+        self.client.hdel(ns, key)
 
+    def del_hkeys(self, keys: list, namespace=None, eval=True ):
+        ns = namespace if namespace else self.namespace
+        for key in keys:
+            self.client.hdel(ns, key)
 
     def close(self):
         self.client.close()
